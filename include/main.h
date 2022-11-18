@@ -12,7 +12,7 @@
 #include <rclc/executor.h>
 
 //#include <std_msgs/msg/u_int8_multi_array.h>
-#include <std_msgs/msg/u_int8.h>
+#include <std_msgs/msg/u_int16.h>
 
 #define RCCHECK(fn) { rcl_ret_t temp_rc = fn; if((temp_rc != RCL_RET_OK)){Serial2.print(#fn " Error Code: "); Serial2.println(temp_rc); return -1;}}
 #define RCSOFTCHECK(fn) { rcl_ret_t temp_rc = fn; if((temp_rc != RCL_RET_OK)){Serial2.print(#fn " Error Code: "); Serial2.println(temp_rc);}}

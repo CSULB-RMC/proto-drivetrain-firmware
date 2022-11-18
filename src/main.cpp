@@ -7,7 +7,7 @@ Servo drivetrainR;
 
 rcl_subscription_t motor_control_sub;
 //std_msgs__msg__UInt8MultiArray motor_control_msg;
-std_msgs__msg__UInt8 motor_control_msg;
+std_msgs__msg__UInt16 motor_control_msg;
 
 rcl_node_t node;
 rclc_executor_t executor;
@@ -17,16 +17,19 @@ rcl_allocator_t allocator;
 #define MICROROS_MAX_SUBSCRIBERS 4
 
 void motor_control_callback(const void * msgin) {
-  const std_msgs__msg__UInt8 * msg = (const std_msgs__msg__UInt8 *)msgin;
+  const std_msgs__msg__UInt16 * msg = (const std_msgs__msg__UInt16 *)msgin;
+  int left, right;
+  left = 0xFF & (msg->data);
+  right = (msg->data) >> 8;
   //uint8_t *dtl = (uint8_t * )msg;
   digitalToggle(LED_BUILTIN);
-  if(msg->data > 170) {
+  if(left > 170) {
     digitalWrite(LED_BUILTIN, HIGH);
   } else {
     digitalWrite(LED_BUILTIN, LOW);
   }
-  drivetrainL.write(msg->data);
-  drivetrainR.write(180-msg->data);
+  drivetrainL.write(left);
+  drivetrainR.write(180-right);
 }
 
 void setup() {
@@ -60,7 +63,7 @@ void setup() {
   drivetrainL.write(90);
   drivetrainR.write(90);
 
-  RCSOFTCHECK(rclc_subscription_init_default(&motor_control_sub, &node, ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, UInt8), "motor_control"));
+  RCSOFTCHECK(rclc_subscription_init_default(&motor_control_sub, &node, ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, UInt16), "motor_control"));
 
   RCSOFTCHECK(rclc_executor_add_subscription(&executor, &motor_control_sub, &motor_control_msg, &motor_control_callback, ON_NEW_DATA));
   
