@@ -1,33 +1,39 @@
 #include <Arduino.h>
 #include <Servo.h>
-#include <vector>
 #include "main.h"
 
 Servo drivetrainL;
 Servo drivetrainR;
 
 rcl_subscription_t motor_control_sub;
-std_msgs__msg__UInt8MultiArray motor_control_msg;
+//std_msgs__msg__UInt8MultiArray motor_control_msg;
+std_msgs__msg__UInt8 motor_control_msg;
 
 rcl_node_t node;
 rclc_executor_t executor;
 rclc_support_t support;
 rcl_allocator_t allocator;
 
-#define MICROROS_MAX_SUBSCRIBERS 1
+#define MICROROS_MAX_SUBSCRIBERS 4
 
 void motor_control_callback(const void * msgin) {
-  const std_msgs__msg__UInt8MultiArray * msg = (const std_msgs__msg__UInt8MultiArray *)msgin;
-  for(std::vector<int>::const_iterator it = msg->data.begin(); it != msg->data.end(); ++it)
-	{
-		msg[i] = *it;
-		i++;
-	}
+  const std_msgs__msg__UInt8 * msg = (const std_msgs__msg__UInt8 *)msgin;
+  //uint8_t *dtl = (uint8_t * )msg;
+  digitalToggle(LED_BUILTIN);
+  if(msg->data > 170) {
+    digitalWrite(LED_BUILTIN, HIGH);
+  } else {
+    digitalWrite(LED_BUILTIN, LOW);
+  }
+  drivetrainL.write(msg->data);
+  drivetrainR.write(180-msg->data);
 }
 
 void setup() {
   // put your setup code here, to run once:
   Serial.begin(115200);
+  Serial2.begin(9600);
+  Serial2.println("test");
   set_microros_serial_transports(Serial);
   delay(2000);
 
@@ -35,17 +41,17 @@ void setup() {
   //printFuncln("Got default allocator");
 
   //create init_options
-  rcl_ret_t temp_rc = rclc_support_init(&support, 0, NULL, &allocator);
+
+  RCSOFTCHECK(rclc_support_init(&support, 0, NULL, &allocator));
  // printFuncln("rclc_support_init Success.");
 
 
   // create node
-  temp_rc = rclc_node_init_default(&node, "micro_ros_arduino_node", "", &support);
+  RCSOFTCHECK(rclc_node_init_default(&node, "micro_ros_arduino_node", "", &support));
   //printFuncln("rclc_node_init_default Success.");
 
   // create executor
-  temp_rc = rclc_executor_init(&executor, &support.context, MICROROS_MAX_SUBSCRIBERS, &allocator);
-  //printFuncln("rclc_executor_init Success.");
+  RCSOFTCHECK(rclc_executor_init(&executor, &support.context, MICROROS_MAX_SUBSCRIBERS, &allocator));
 
   pinMode(LED_BUILTIN, OUTPUT);
   drivetrainL.attach(33);
@@ -54,12 +60,17 @@ void setup() {
   drivetrainL.write(90);
   drivetrainR.write(90);
 
-  rclc_subscription_init_default(&motor_control_sub, &node, ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, UInt8MultiArray), "motor_control");
+  RCSOFTCHECK(rclc_subscription_init_default(&motor_control_sub, &node, ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, UInt8), "motor_control"));
 
-  rclc_executor_add_subscription(&executor, &motor_control_sub, &motor_control_msg, &motor_control_callback, ON_NEW_DATA);
+  RCSOFTCHECK(rclc_executor_add_subscription(&executor, &motor_control_sub, &motor_control_msg, &motor_control_callback, ON_NEW_DATA));
+  
+  Serial2.println("Done with setup.");
+  delay(2000);
+  //digitalWrite(LED_BUILTIN, HIGH);
 }
 
 void loop() {
-  rclc_executor_spin_some(&executor, RCL_MS_TO_NS(100));
+  
+  RCSOFTCHECK(rclc_executor_spin_some(&executor, RCL_MS_TO_NS(100)));
   // put your main code here, to run repeatedly:
 }
